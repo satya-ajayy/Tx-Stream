@@ -1,0 +1,44 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.out
+*.a
+
+# Go modules
+vendor/
+go.sum
+go.work
+go.work.sum
+
+# Go build and test artifacts
+bin/
+build/
+dist/
+*.test
+*.prof
+*.cov
+*.cover
+*.log
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+
+# Docker-related
+docker-compose.override.yml
+.env
