@@ -82,7 +82,7 @@ func main() {
 	_ = cfg.Level.UnmarshalText([]byte(k.String("logger.level")))
 	cfg.InitialFields = make(map[string]any)
 	cfg.InitialFields["host"], _ = os.Hostname()
-	cfg.InitialFields["service"] = "txconsumer"
+	cfg.InitialFields["service"] = "tx-consumer"
 	cfg.OutputPaths = []string{"stdout"}
 	logger, _ := cfg.Build()
 	defer func() {
@@ -114,7 +114,8 @@ func main() {
 		logger.Fatal("cannot create transactions consumer", zap.Error(err))
 	}
 
-	if txConsumer != nil {
-		txConsumer.Poll(ctx)
+	err = txConsumer.Poll(ctx)
+	if err != nil {
+		logger.Fatal("cannot poll records from topic", zap.Error(err))
 	}
 }

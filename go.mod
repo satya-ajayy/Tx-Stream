@@ -6,7 +6,6 @@ require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/jsternberg/zap-logfmt v1.3.0
 	github.com/knadh/koanf v1.5.0
-	github.com/samber/lo v1.49.1
 	github.com/twmb/franz-go v1.14.0
 	github.com/twmb/franz-go/plugin/kprom v1.1.0
 	go.mongodb.org/mongo-driver v1.17.3
@@ -32,6 +31,7 @@ require (
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.6.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect

@@ -8,7 +8,6 @@ services:
 
   zookeeper:
     image: bitnami/zookeeper:3.8.2
-    container_name: zookeeper
     restart: always
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
@@ -19,7 +18,6 @@ services:
 
   kafka:
     image: bitnami/kafka:3.5.1
-    container_name: kafka
     restart: always
     depends_on:
       - zookeeper

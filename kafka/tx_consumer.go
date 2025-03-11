@@ -100,6 +100,6 @@ func (c *Consumer) Poll(ctx context.Context) error {
 		}
 
 		// Commit processed records
-		c.Client.CommitRecords(ctx, fetches.Records()...)
+		_ = c.Client.CommitRecords(ctx, fetches.Records()...)
 	}
 }
