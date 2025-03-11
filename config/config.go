@@ -1,6 +1,9 @@
 package config
 
-import "go-kafka/errors"
+import (
+	// Local Packages
+	errors "go-kafka/errors"
+)
 
 var DefaultConfig = []byte(`
 logger:
@@ -16,8 +19,10 @@ mongo:
   uri: "mongodb://localhost:27017"
 
 kafka:
-  uri: "localhost:6379"
-  password: ""
+  brokers: "localhost:9092"
+  consume: true
+  topic: "transactions-input"
+  consumer_name: "Transactions Consumer"
 `)
 
 type Config struct {
@@ -38,8 +43,10 @@ type Mongo struct {
 }
 
 type Kafka struct {
-	URI string `koanf:"uri"`
-	PWD string `koanf:"password"`
+	Brokers      string `koanf:"brokers"`
+	Consume      bool   `koanf:"consume"`
+	Topic        string `koanf:"topic"`
+	ConsumerName string `koanf:"consumer_name"`
 }
 
 // Validate validates the configuration
@@ -55,8 +62,8 @@ func (c *Config) Validate() error {
 	if c.Mongo.URI == "" {
 		ve.Add("mongo.uri", "cannot be empty")
 	}
-	if c.Kafka.URI == "" {
-		ve.Add("redis.uri", "cannot be empty")
+	if c.Kafka.Brokers == "" {
+		ve.Add("kafka.brokers", "cannot be empty")
 	}
 
 	return ve.Err()
