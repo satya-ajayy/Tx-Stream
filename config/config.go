@@ -7,11 +7,9 @@ import (
 
 var DefaultConfig = []byte(`
 logger:
-	level: "info"
+  level: "info"
 
 listen: ":8888"
-
-prefix: "/ajayverse"
 
 is_prod_mode: false
 
@@ -28,7 +26,6 @@ kafka:
 type Config struct {
 	Logger     Logger `koanf:"logger"`
 	Listen     string `koanf:"listen"`
-	Prefix     string `koanf:"prefix"`
 	IsProdMode bool   `koanf:"is_prod_mode"`
 	Mongo      Mongo  `koanf:"mongo"`
 	Kafka      Kafka  `koanf:"kafka"`
