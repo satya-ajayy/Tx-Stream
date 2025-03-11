@@ -17,16 +17,10 @@ type Transaction struct {
 	PaymentMethod   string  `json:"payment_method"`
 	CardNumber      string  `json:"card_number"`
 	BankName        string  `json:"bank_name"`
-	MerchantID      string  `json:"merchant_id"`
 	MerchantName    string  `json:"merchant_name"`
 	Location        string  `json:"location"`
-	Description     string  `json:"description"`
 	Category        string  `json:"category"`
 	InvoiceNumber   string  `json:"invoice_number"`
-	ReferenceID     string  `json:"reference_id"`
-	TaxAmount       float64 `json:"tax_amount"`
 	Discount        float64 `json:"discount"`
-	NetAmount       float64 `json:"net_amount"`
 	IPAddress       string  `json:"ip_address"`
-	DeviceID        string  `json:"device_id"`
 }

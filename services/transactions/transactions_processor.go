@@ -3,9 +3,9 @@ package transactions
 import (
 	// Go Internal Packages
 	"context"
+	"encoding/json"
+	"fmt"
 
-	// Local Packages
-	helpers "go-kafka/helpers"
 	models "go-kafka/models"
 
 	// External Packages
@@ -25,7 +25,15 @@ func NewTxProcessor(logger *zap.Logger, txRepo TxRepository) *TxProcessor {
 	return &TxProcessor{TxRepo: txRepo, Logger: logger}
 }
 
-func (t *TxProcessor) ProcessRecords(records []models.Record) error {
-	helpers.PrintStruct(records)
+func (p *TxProcessor) ProcessRecords(records []models.Record) error {
+	var tx models.Transaction
+	for _, record := range records {
+		err := json.Unmarshal(record.Value, &tx)
+		if err != nil {
+			p.Logger.Error("failed to unmarshal transaction", zap.Error(err))
+			return err
+		}
+		println(fmt.Sprintf("Received Transaction %f", tx.Amount))
+	}
 	return nil
 }

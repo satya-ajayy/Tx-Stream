@@ -61,7 +61,7 @@ func (c *Consumer) Poll(ctx context.Context) error {
 	defer c.Client.Close()
 
 	consumerName := c.Config.Name
-	recordsToPoll := c.Config.RecordsPerPoll
+	recordsPerPoll := c.Config.RecordsPerPoll
 
 	for {
 		// Check if the context is canceled before polling
@@ -71,7 +71,7 @@ func (c *Consumer) Poll(ctx context.Context) error {
 		}
 
 		c.Logger.Info(fmt.Sprintf("%s: polling for records", consumerName))
-		fetches := c.Client.PollRecords(ctx, recordsToPoll)
+		fetches := c.Client.PollRecords(ctx, recordsPerPoll)
 
 		// Handle client shutdown
 		if fetches.IsClientClosed() {

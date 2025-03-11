@@ -20,7 +20,8 @@ kafka:
   brokers: "localhost:9092"
   consume: true
   topic: "transactions-input"
-  consumer_name: "Transactions Consumer"
+  records_per_poll: 5
+  consumer_name: "transactions-consumer"
 `)
 
 type Config struct {
@@ -40,10 +41,11 @@ type Mongo struct {
 }
 
 type Kafka struct {
-	Brokers      string `koanf:"brokers"`
-	Consume      bool   `koanf:"consume"`
-	Topic        string `koanf:"topic"`
-	ConsumerName string `koanf:"consumer_name"`
+	Brokers        string `koanf:"brokers"`
+	Consume        bool   `koanf:"consume"`
+	Topic          string `koanf:"topic"`
+	RecordsPerPoll int    `koanf:"records_per_poll"`
+	ConsumerName   string `koanf:"consumer_name"`
 }
 
 // Validate validates the configuration

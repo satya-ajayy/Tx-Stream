@@ -106,7 +106,7 @@ func main() {
 		Brokers:        []string{updatedKonf.Kafka.Brokers},
 		Name:           updatedKonf.Kafka.ConsumerName,
 		Topic:          updatedKonf.Kafka.Topic,
-		RecordsPerPoll: 5,
+		RecordsPerPoll: updatedKonf.Kafka.RecordsPerPoll,
 	}
 
 	txConsumer, err := kafka.NewTxConsumer(conf, txProcessor, metrics, logger)
