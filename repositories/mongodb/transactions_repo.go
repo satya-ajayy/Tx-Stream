@@ -4,9 +4,6 @@ import (
 	// Go Internal Packages
 	"context"
 
-	// Local Packages
-	models "go-kafka/models"
-
 	// External Packages
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -20,10 +17,10 @@ func NewTxRepository(client *mongo.Client) *TxRepository {
 	return &TxRepository{client: client, collection: "transactions"}
 }
 
-// InsertTransaction inserts a new transaction into database
-func (r *TxRepository) InsertTransaction(ctx context.Context, transaction models.Transaction) error {
+// InsertTransactions inserts a batch of transactions into database
+func (r *TxRepository) InsertTransactions(ctx context.Context, txs []interface{}) error {
 	collection := r.client.Database("mybase").Collection(r.collection)
-	_, err := collection.InsertOne(ctx, transaction)
+	_, err := collection.InsertMany(ctx, txs)
 	if err != nil {
 		return err
 	}

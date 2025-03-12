@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	// Local Packages
 	models "go-kafka/models"
 
 	// External Packages
@@ -13,7 +14,7 @@ import (
 )
 
 type TxRepository interface {
-	InsertTransaction(ctx context.Context, transaction models.Transaction) error
+	InsertTransactions(ctx context.Context, txs []interface{}) error
 }
 
 type TxProcessor struct {
@@ -25,15 +26,22 @@ func NewTxProcessor(logger *zap.Logger, txRepo TxRepository) *TxProcessor {
 	return &TxProcessor{TxRepo: txRepo, Logger: logger}
 }
 
-func (p *TxProcessor) ProcessRecords(records []models.Record) error {
-	var tx models.Transaction
+func (p *TxProcessor) ProcessRecords(ctx context.Context, records []models.Record) error {
+	var txs []interface{}
+
 	for _, record := range records {
+		var tx models.Transaction
 		err := json.Unmarshal(record.Value, &tx)
 		if err != nil {
 			p.Logger.Error("failed to unmarshal transaction", zap.Error(err))
-			return err
+			continue
 		}
-		println(fmt.Sprintf("Received Transaction %f", tx.Amount))
+		txs = append(txs, tx.Transform())
+	}
+
+	err := p.TxRepo.InsertTransactions(ctx, txs)
+	if err != nil {
+		return fmt.Errorf("failed to insert transactions: %v", err)
 	}
 	return nil
 }

@@ -30,11 +30,11 @@ type Consumer struct {
 }
 
 type TxProcessor interface {
-	ProcessRecords(records []models.Record) error
+	ProcessRecords(ctx context.Context, records []models.Record) error
 }
 
-// NewTxConsumer creates a new consumer and starts a goroutine for each partition to consume
-// the records that are fetched (PS: Must call Poll to start consuming the records)
+// NewTxConsumer creates a new consumer to consume transactions topic
+// (PS: Must call Poll to start consuming the records)
 func NewTxConsumer(conf *ConsumerConfig, processor TxProcessor, metrics *kprom.Metrics, logger *zap.Logger) (*Consumer, error) {
 	c := &Consumer{Config: conf, Processor: processor, Logger: logger}
 
@@ -66,7 +66,7 @@ func (c *Consumer) Poll(ctx context.Context) error {
 	for {
 		// Check if the context is canceled before polling
 		if ctx.Err() != nil {
-			c.Logger.Warn("Polling stopped: context canceled")
+			c.Logger.Warn("polling stopped: context canceled")
 			return ctx.Err() // Exit gracefully
 		}
 
@@ -94,8 +94,8 @@ func (c *Consumer) Poll(ctx context.Context) error {
 		}
 
 		// Process records and handle errors robustly
-		if err := c.Processor.ProcessRecords(records); err != nil {
-			c.Logger.Error("Failed to process records", zap.Error(err))
+		if err := c.Processor.ProcessRecords(ctx, records); err != nil {
+			c.Logger.Error("failed to process records", zap.Error(err))
 			continue // Don't exit on a single failure
 		}
 
