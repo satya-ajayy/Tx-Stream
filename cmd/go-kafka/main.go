@@ -59,21 +59,21 @@ func LoadConfig() *koanf.Koanf {
 
 func main() {
 	k := LoadConfig()
-	appKonf := config.Config{}
 
 	// Unmarshalling config into struct
+	appKonf := config.Config{}
 	err := k.Unmarshal("", &appKonf)
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
 	}
 
 	// Update and Validate config before starting the server
-	updatedKonf := LoadSecrets(appKonf)
-	if err = updatedKonf.Validate(); err != nil {
+	prodKonf := LoadSecrets(appKonf)
+	if err = prodKonf.Validate(); err != nil {
 		log.Fatalf("Invalid configuration: %v", err)
 	}
 
-	if !updatedKonf.IsProdMode {
+	if !prodKonf.IsProdMode {
 		k.Print()
 	}
 
@@ -82,7 +82,7 @@ func main() {
 	_ = cfg.Level.UnmarshalText([]byte(k.String("logger.level")))
 	cfg.InitialFields = make(map[string]any)
 	cfg.InitialFields["host"], _ = os.Hostname()
-	cfg.InitialFields["service"] = "tx-consumer"
+	cfg.InitialFields["service"] = prodKonf.Application
 	cfg.OutputPaths = []string{"stdout"}
 	logger, _ := cfg.Build()
 	defer func() {
@@ -93,7 +93,7 @@ func main() {
 	defer stop()
 
 	// Connect to mongodb
-	mongoClient, err := mongodb.Connect(ctx, updatedKonf.Mongo.URI)
+	mongoClient, err := mongodb.Connect(ctx, prodKonf.Mongo.URI)
 	if err != nil {
 		logger.Fatal("cannot create mongo client", zap.Error(err))
 	}
@@ -103,10 +103,10 @@ func main() {
 
 	metrics := kprom.NewMetrics("et")
 	conf := &kafka.ConsumerConfig{
-		Brokers:        []string{updatedKonf.Kafka.Brokers},
-		Name:           updatedKonf.Kafka.ConsumerName,
-		Topic:          updatedKonf.Kafka.Topic,
-		RecordsPerPoll: updatedKonf.Kafka.RecordsPerPoll,
+		Brokers:        []string{prodKonf.Kafka.Brokers},
+		Name:           prodKonf.Kafka.ConsumerName,
+		Topic:          prodKonf.Kafka.Topic,
+		RecordsPerPoll: prodKonf.Kafka.RecordsPerPoll,
 	}
 
 	txConsumer, err := kafka.NewTxConsumer(conf, txProcessor, metrics, logger)

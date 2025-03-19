@@ -6,10 +6,10 @@ import (
 )
 
 var DefaultConfig = []byte(`
+application: "tx-consumer"
+
 logger:
   level: "info"
-
-listen: ":8888"
 
 is_prod_mode: false
 
@@ -21,15 +21,15 @@ kafka:
   consume: true
   topic: "transactions-input"
   records_per_poll: 5
-  consumer_name: "transactions-consumer"
+  consumer_name: "tx-consumer"
 `)
 
 type Config struct {
-	Logger     Logger `koanf:"logger"`
-	Listen     string `koanf:"listen"`
-	IsProdMode bool   `koanf:"is_prod_mode"`
-	Mongo      Mongo  `koanf:"mongo"`
-	Kafka      Kafka  `koanf:"kafka"`
+	Application string `koanf:"application"`
+	Logger      Logger `koanf:"logger"`
+	IsProdMode  bool   `koanf:"is_prod_mode"`
+	Mongo       Mongo  `koanf:"mongo"`
+	Kafka       Kafka  `koanf:"kafka"`
 }
 
 type Logger struct {
@@ -52,8 +52,8 @@ type Kafka struct {
 func (c *Config) Validate() error {
 	ve := errors.ValidationErrs()
 
-	if c.Listen == "" {
-		ve.Add("listen", "cannot be empty")
+	if c.Application == "" {
+		ve.Add("application", "cannot be empty")
 	}
 	if c.Logger.Level == "" {
 		ve.Add("logger.level", "cannot be empty")
