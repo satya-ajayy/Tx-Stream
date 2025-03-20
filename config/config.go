@@ -19,8 +19,8 @@ mongo:
 kafka:
   brokers: "localhost:9092"
   consume: true
-  topic: "transactions-input"
-  records_per_poll: 5
+  topic: "transactions"
+  records_per_poll: 1
   consumer_name: "tx-consumer"
 `)
 

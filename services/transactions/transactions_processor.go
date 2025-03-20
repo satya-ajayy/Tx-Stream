@@ -15,6 +15,7 @@ import (
 
 type TxRepository interface {
 	InsertTransactions(ctx context.Context, txs []interface{}) error
+	InsertTransaction(ctx context.Context, tx models.MongoTransaction) error
 }
 
 type TxProcessor struct {
@@ -42,6 +43,21 @@ func (p *TxProcessor) ProcessRecords(ctx context.Context, records []models.Recor
 	err := p.TxRepo.InsertTransactions(ctx, txs)
 	if err != nil {
 		return fmt.Errorf("failed to insert transactions: %v", err)
+	}
+	return nil
+}
+
+func (p *TxProcessor) ProcessRecord(ctx context.Context, record models.Record) error {
+	var tx models.Transaction
+
+	err := json.Unmarshal(record.Value, &tx)
+	if err != nil {
+		p.Logger.Error("failed to unmarshal transaction", zap.Error(err))
+	}
+
+	err = p.TxRepo.InsertTransaction(ctx, tx.Transform())
+	if err != nil {
+		return fmt.Errorf("failed to insert transaction: %v", err)
 	}
 	return nil
 }
