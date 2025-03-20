@@ -20,7 +20,7 @@ kafka:
   brokers: "localhost:9092"
   consume: true
   topic: "transactions"
-  records_per_poll: 1
+  records_per_poll: 250
   consumer_name: "tx-consumer"
 `)
 
