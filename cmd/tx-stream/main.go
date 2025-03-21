@@ -33,6 +33,16 @@ func LoadSecrets(k config.Config) config.Config {
 		k.Mongo.URI = MongoURI
 	}
 
+	RedisURI := os.Getenv("REDIS_URI")
+	if RedisURI != "" {
+		k.Redis.URI = RedisURI
+	}
+
+	RedisPWD := os.Getenv("REDIS_PWD")
+	if RedisPWD != "" {
+		k.Redis.Password = RedisPWD
+	}
+
 	KafkaBrokers := os.Getenv("KAFKA_BROKERS")
 	if KafkaBrokers != "" {
 		k.Kafka.Brokers = KafkaBrokers
@@ -122,7 +132,7 @@ func main() {
 		logger.Fatal("cannot create transactions consumer", zap.Error(err))
 	}
 
-	err = txConsumer.Poll(ctx)
+	err = txConsumer.Poll(ctx, prodKonf.Kafka.Consume)
 	if err != nil {
 		logger.Fatal("cannot poll records from topic", zap.Error(err))
 	}
