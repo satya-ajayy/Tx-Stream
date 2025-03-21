@@ -9,8 +9,8 @@ import (
 	"time"
 
 	// Local Packages
-	models "go-kafka/models"
-	redis "go-kafka/repositories/redis"
+	models "tx-stream/models"
+	redis "tx-stream/repositories/redis"
 
 	// External Packages
 	"github.com/twmb/franz-go/pkg/kgo"

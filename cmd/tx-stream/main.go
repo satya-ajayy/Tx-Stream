@@ -9,11 +9,11 @@ import (
 	"syscall"
 
 	// Local Packages
-	config "go-kafka/config"
-	kafka "go-kafka/kafka"
-	mongodb "go-kafka/repositories/mongodb"
-	redis "go-kafka/repositories/redis"
-	txsvc "go-kafka/services/transactions"
+	config "tx-stream/config"
+	kafka "tx-stream/kafka"
+	mongodb "tx-stream/repositories/mongodb"
+	redis "tx-stream/repositories/redis"
+	txsvc "tx-stream/services/transactions"
 
 	// External Packages
 	"github.com/alecthomas/kingpin/v2"

@@ -1,4 +1,4 @@
-module go-kafka
+module tx-stream
 
 go 1.23.3
 

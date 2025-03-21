@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	// Local Packages
-	models "go-kafka/models"
+	models "tx-stream/models"
 
 	// External Packages
 	"github.com/redis/go-redis/v9"

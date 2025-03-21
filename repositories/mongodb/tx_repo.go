@@ -5,7 +5,7 @@ import (
 	"context"
 
 	// Local Packages
-	models "go-kafka/models"
+	models "tx-stream/models"
 
 	// External Packages
 	"go.mongodb.org/mongo-driver/mongo"

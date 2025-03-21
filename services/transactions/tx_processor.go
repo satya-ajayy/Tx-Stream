@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	// Local Packages
-	models "go-kafka/models"
+	models "tx-stream/models"
 
 	// External Packages
 	"go.uber.org/zap"

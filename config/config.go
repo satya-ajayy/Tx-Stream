@@ -2,7 +2,7 @@ package config
 
 import (
 	// Local Packages
-	errors "go-kafka/errors"
+	errors "tx-stream/errors"
 )
 
 var DefaultConfig = []byte(`
