@@ -16,11 +16,15 @@ is_prod_mode: false
 mongo:
   uri: "mongodb://localhost:27017"
 
+redis:
+  uri: "localhost:6379"
+  password: ""
+
 kafka:
   brokers: "localhost:9092"
   consume: true
   topic: "transactions"
-  records_per_poll: 250
+  records_per_poll: 50
   consumer_name: "tx-consumer"
 `)
 
@@ -29,6 +33,7 @@ type Config struct {
 	Logger      Logger `koanf:"logger"`
 	IsProdMode  bool   `koanf:"is_prod_mode"`
 	Mongo       Mongo  `koanf:"mongo"`
+	Redis       Redis  `koanf:"redis"`
 	Kafka       Kafka  `koanf:"kafka"`
 }
 
@@ -38,6 +43,11 @@ type Logger struct {
 
 type Mongo struct {
 	URI string `koanf:"uri"`
+}
+
+type Redis struct {
+	URI      string `koanf:"uri"`
+	Password string `koanf:"password"`
 }
 
 type Kafka struct {
@@ -60,6 +70,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Mongo.URI == "" {
 		ve.Add("mongo.uri", "cannot be empty")
+	}
+	if c.Redis.URI == "" {
+		ve.Add("redis.uri", "cannot be empty")
 	}
 	if c.Kafka.Brokers == "" {
 		ve.Add("kafka.brokers", "cannot be empty")

@@ -12,6 +12,7 @@ import (
 	config "go-kafka/config"
 	kafka "go-kafka/kafka"
 	mongodb "go-kafka/repositories/mongodb"
+	redis "go-kafka/repositories/redis"
 	txsvc "go-kafka/services/transactions"
 
 	// External Packages
@@ -92,13 +93,20 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Connect to mongodb
+	// Mongo Connection
 	mongoClient, err := mongodb.Connect(ctx, prodKonf.Mongo.URI)
 	if err != nil {
 		logger.Fatal("cannot create mongo client", zap.Error(err))
 	}
 
+	// Redis Connection
+	redisClient, err := redis.Connect(ctx, prodKonf.Redis.URI, prodKonf.Redis.Password)
+	if err != nil {
+		logger.Fatal("cannot create redis client", zap.Error(err))
+	}
+
 	txRepo := mongodb.NewTxRepository(mongoClient)
+	dlQueue := redis.NewDeadLetterQueue(redisClient, logger)
 	txProcessor := txsvc.NewTxProcessor(logger, txRepo)
 
 	metrics := kprom.NewMetrics("et")
@@ -109,7 +117,7 @@ func main() {
 		RecordsPerPoll: prodKonf.Kafka.RecordsPerPoll,
 	}
 
-	txConsumer, err := kafka.NewTxConsumer(conf, txProcessor, metrics, logger)
+	txConsumer, err := kafka.NewTxConsumer(conf, logger, txProcessor, dlQueue, metrics)
 	if err != nil {
 		logger.Fatal("cannot create transactions consumer", zap.Error(err))
 	}

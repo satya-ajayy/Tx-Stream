@@ -5,9 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"time"
 
 	// Local Packages
 	models "go-kafka/models"
+	redis "go-kafka/repositories/redis"
 
 	// External Packages
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -23,10 +26,11 @@ type ConsumerConfig struct {
 }
 
 type Consumer struct {
-	Client    *kgo.Client
-	Config    *ConsumerConfig
-	Processor TxProcessor
-	Logger    *zap.Logger
+	Client          *kgo.Client
+	Config          *ConsumerConfig
+	Processor       TxProcessor
+	Logger          *zap.Logger
+	DeadLetterQueue *redis.DeadLetterQueue
 }
 
 type TxProcessor interface {
@@ -36,9 +40,7 @@ type TxProcessor interface {
 
 // NewTxConsumer creates a new consumer to consume transactions topic
 // (PS: Must call Poll to start consuming the records)
-func NewTxConsumer(conf *ConsumerConfig, processor TxProcessor, metrics *kprom.Metrics, logger *zap.Logger) (*Consumer, error) {
-	c := &Consumer{Config: conf, Processor: processor, Logger: logger}
-
+func NewTxConsumer(conf *ConsumerConfig, logger *zap.Logger, processor TxProcessor, dlQueue *redis.DeadLetterQueue, metrics *kprom.Metrics) (*Consumer, error) {
 	opts := []kgo.Opt{
 		kgo.SeedBrokers(conf.Brokers...), // Connects to Kafka brokers
 		kgo.ConsumerGroup(conf.Name),     // Specifies the consumer group
@@ -53,8 +55,13 @@ func NewTxConsumer(conf *ConsumerConfig, processor TxProcessor, metrics *kprom.M
 		return nil, err
 	}
 
-	c.Client = client
-	return c, nil
+	return &Consumer{
+		Client:          client,
+		Config:          conf,
+		Processor:       processor,
+		Logger:          logger,
+		DeadLetterQueue: dlQueue,
+	}, nil
 }
 
 // Poll polls for records from the Kafka broker.
@@ -94,13 +101,31 @@ func (c *Consumer) Poll(ctx context.Context) error {
 			}
 		}
 
-		// Process records and handle errors robustly
-		if err := c.Processor.ProcessRecords(ctx, records); err != nil {
-			c.Logger.Error("failed to process records", zap.Error(err))
-			continue // Don't exit on a single failure
+		maxAttempts := 2
+		success := false
+		baseBackOff := int64(time.Second)
+
+		for attempt := 1; attempt <= maxAttempts; attempt++ {
+			err := c.Processor.ProcessRecords(ctx, records)
+			if err == nil {
+				success = true
+				break
+			}
+			c.Logger.Warn("processing failed, retrying...", zap.Int("attempt", attempt), zap.Error(err))
+			jitter := time.Duration(rand.Int63n(baseBackOff) * (1 << attempt)) // 1s, 2s-4s, 4s-8s, 8s-16s
+			time.Sleep(jitter)
 		}
 
-		// Commit processed records
-		_ = c.Client.CommitRecords(ctx, fetches.Records()...)
+		if !success {
+			c.Logger.Info("processing failed after retries, sending to DLQ")
+			if err := c.DeadLetterQueue.Send(ctx, records); err != nil {
+				c.Logger.Error("failed to send records to DLQ", zap.Error(err))
+			}
+		}
+
+		// Commit successfully processed records
+		if err := c.Client.CommitRecords(ctx, fetches.Records()...); err != nil {
+			c.Logger.Error("failed to commit processed records", zap.Error(err))
+		}
 	}
 }

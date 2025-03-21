@@ -6,6 +6,13 @@ services:
     volumes:
       - mongo_data:/data/db
 
+  redis:
+    image: redis:7.4.2
+    restart: always
+    network_mode: host
+    volumes:
+      - redis_data:/data
+
   zookeeper:
     image: bitnami/zookeeper:3.8.2
     restart: always
@@ -38,4 +45,6 @@ volumes:
   kafka_data:
     driver: local
   mongo_data:
+    external: true
+  redis_data:
     external: true
