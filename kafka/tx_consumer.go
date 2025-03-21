@@ -34,7 +34,6 @@ type Consumer struct {
 }
 
 type TxProcessor interface {
-	ProcessRecord(ctx context.Context, record models.Record) error
 	ProcessRecords(ctx context.Context, records []models.Record) error
 }
 

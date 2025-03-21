@@ -53,6 +53,7 @@ func (p *TxProcessor) ProcessRecord(ctx context.Context, record models.Record) e
 	err := json.Unmarshal(record.Value, &tx)
 	if err != nil {
 		p.Logger.Error("failed to unmarshal transaction", zap.Error(err))
+		return nil
 	}
 
 	err = p.TxRepo.InsertTransaction(ctx, tx.Transform())
