@@ -13,7 +13,7 @@ import (
 	kafka "tx-stream/kafka"
 	mongodb "tx-stream/repositories/mongodb"
 	redis "tx-stream/repositories/redis"
-	txsvc "tx-stream/services/transactions"
+	txpsr "tx-stream/services/processors"
 
 	// External Packages
 	"github.com/alecthomas/kingpin/v2"
@@ -25,33 +25,6 @@ import (
 	"github.com/twmb/franz-go/plugin/kprom"
 	"go.uber.org/zap"
 )
-
-// LoadSecrets Loads the secret variables and overrides the config
-func LoadSecrets(k config.Config) config.Config {
-	MongoURI := os.Getenv("MONGO_URI")
-	if MongoURI != "" {
-		k.Mongo.URI = MongoURI
-	}
-
-	RedisURI := os.Getenv("REDIS_URI")
-	if RedisURI != "" {
-		k.Redis.URI = RedisURI
-	}
-
-	RedisPWD := os.Getenv("REDIS_PWD")
-	if RedisPWD != "" {
-		k.Redis.Password = RedisPWD
-	}
-
-	KafkaBrokers := os.Getenv("KAFKA_BROKERS")
-	if KafkaBrokers != "" {
-		k.Kafka.Brokers = KafkaBrokers
-	}
-
-	IsProdMode := os.Getenv("IS_PROD_MODE")
-	k.IsProdMode = IsProdMode == "true"
-	return k
-}
 
 // LoadConfig loads the default configuration and overrides it with the config file
 // specified by the path defined in the config flag
@@ -70,21 +43,20 @@ func LoadConfig() *koanf.Koanf {
 
 func main() {
 	k := LoadConfig()
+	appKonf := config.Config{}
 
 	// Unmarshalling config into struct
-	appKonf := config.Config{}
 	err := k.Unmarshal("", &appKonf)
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
 	}
 
-	// Update and Validate config before starting the server
-	prodKonf := LoadSecrets(appKonf)
-	if err = prodKonf.Validate(); err != nil {
+	// Validate the config loaded
+	if err = appKonf.Validate(); err != nil {
 		log.Fatalf("Invalid configuration: %v", err)
 	}
 
-	if !prodKonf.IsProdMode {
+	if !appKonf.IsProdMode {
 		k.Print()
 	}
 
@@ -93,7 +65,7 @@ func main() {
 	_ = cfg.Level.UnmarshalText([]byte(k.String("logger.level")))
 	cfg.InitialFields = make(map[string]any)
 	cfg.InitialFields["host"], _ = os.Hostname()
-	cfg.InitialFields["service"] = prodKonf.Application
+	cfg.InitialFields["service"] = appKonf.Application
 	cfg.OutputPaths = []string{"stdout"}
 	logger, _ := cfg.Build()
 	defer func() {
@@ -104,27 +76,27 @@ func main() {
 	defer stop()
 
 	// Mongo Connection
-	mongoClient, err := mongodb.Connect(ctx, prodKonf.Mongo.URI)
+	mongoClient, err := mongodb.Connect(ctx, appKonf.Mongo.URI)
 	if err != nil {
 		logger.Fatal("cannot create mongo client", zap.Error(err))
 	}
 
 	// Redis Connection
-	redisClient, err := redis.Connect(ctx, prodKonf.Redis.URI, prodKonf.Redis.Password)
+	redisClient, err := redis.Connect(ctx, appKonf.Redis.URI, appKonf.Redis.Password)
 	if err != nil {
 		logger.Fatal("cannot create redis client", zap.Error(err))
 	}
 
 	txRepo := mongodb.NewTxRepository(mongoClient)
 	dlQueue := redis.NewDeadLetterQueue(redisClient, logger)
-	txProcessor := txsvc.NewTxProcessor(logger, txRepo)
+	txProcessor := txpsr.NewTxProcessor(logger, txRepo)
 
 	metrics := kprom.NewMetrics("et")
 	conf := &kafka.ConsumerConfig{
-		Brokers:        []string{prodKonf.Kafka.Brokers},
-		Name:           prodKonf.Kafka.ConsumerName,
-		Topic:          prodKonf.Kafka.Topic,
-		RecordsPerPoll: prodKonf.Kafka.RecordsPerPoll,
+		Brokers:        appKonf.Kafka.Brokers,
+		Name:           appKonf.Kafka.ConsumerName,
+		Topic:          appKonf.Kafka.Topic,
+		RecordsPerPoll: appKonf.Kafka.RecordsPerPoll,
 	}
 
 	txConsumer, err := kafka.NewTxConsumer(conf, logger, txProcessor, dlQueue, metrics)
@@ -132,8 +104,9 @@ func main() {
 		logger.Fatal("cannot create transactions consumer", zap.Error(err))
 	}
 
-	err = txConsumer.Poll(ctx, prodKonf.Kafka.Consume)
-	if err != nil {
-		logger.Fatal("cannot poll records from topic", zap.Error(err))
+	if appKonf.Kafka.Consume {
+		if err = txConsumer.Poll(ctx); err != nil {
+			logger.Fatal("cannot poll records from topic", zap.Error(err))
+		}
 	}
 }

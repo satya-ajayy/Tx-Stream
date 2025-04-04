@@ -64,10 +64,7 @@ func NewTxConsumer(conf *ConsumerConfig, logger *zap.Logger, processor TxProcess
 }
 
 // Poll polls for records from the Kafka broker.
-func (c *Consumer) Poll(ctx context.Context, consume bool) error {
-	if !consume {
-		return nil
-	}
+func (c *Consumer) Poll(ctx context.Context) error {
 	defer c.Client.Close()
 
 	for {
@@ -104,6 +101,7 @@ func (c *Consumer) Poll(ctx context.Context, consume bool) error {
 		for attempt := 1; attempt <= 2; attempt++ {
 			err := c.Processor.ProcessRecords(ctx, records)
 			if err == nil {
+				c.Logger.Info("successfully processed records", zap.Int("count", len(records)))
 				success = true
 				break
 			}

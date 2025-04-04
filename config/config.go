@@ -21,7 +21,8 @@ redis:
   password: ""
 
 kafka:
-  brokers: "localhost:9092"
+  brokers:
+    - "localhost:9092"
   consume: true
   topic: "transactions"
   records_per_poll: 50
@@ -51,11 +52,11 @@ type Redis struct {
 }
 
 type Kafka struct {
-	Brokers        string `koanf:"brokers"`
-	Consume        bool   `koanf:"consume"`
-	Topic          string `koanf:"topic"`
-	RecordsPerPoll int    `koanf:"records_per_poll"`
-	ConsumerName   string `koanf:"consumer_name"`
+	Brokers        []string `koanf:"brokers"`
+	Consume        bool     `koanf:"consume"`
+	Topic          string   `koanf:"topic"`
+	RecordsPerPoll int      `koanf:"records_per_poll"`
+	ConsumerName   string   `koanf:"consumer_name"`
 }
 
 // Validate validates the configuration
@@ -74,7 +75,7 @@ func (c *Config) Validate() error {
 	if c.Redis.URI == "" {
 		ve.Add("redis.uri", "cannot be empty")
 	}
-	if c.Kafka.Brokers == "" {
+	if len(c.Kafka.Brokers) == 0 {
 		ve.Add("kafka.brokers", "cannot be empty")
 	}
 
