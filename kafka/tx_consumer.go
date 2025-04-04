@@ -67,9 +67,6 @@ func NewTxConsumer(conf *ConsumerConfig, logger *zap.Logger, processor TxProcess
 func (c *Consumer) Poll(ctx context.Context) error {
 	defer c.Client.Close()
 
-	consumerName := c.Config.Name
-	recordsPerPoll := c.Config.RecordsPerPoll
-
 	for {
 		// Check if the context is canceled before polling
 		if ctx.Err() != nil {
@@ -77,8 +74,8 @@ func (c *Consumer) Poll(ctx context.Context) error {
 			return ctx.Err() // Exit gracefully
 		}
 
-		c.Logger.Info(fmt.Sprintf("%s: polling for records", consumerName))
-		fetches := c.Client.PollRecords(ctx, recordsPerPoll)
+		c.Logger.Info(fmt.Sprintf("%s: polling for records", c.Config.Name))
+		fetches := c.Client.PollRecords(ctx, c.Config.RecordsPerPoll)
 
 		// Handle client shutdown
 		if fetches.IsClientClosed() {
@@ -100,11 +97,8 @@ func (c *Consumer) Poll(ctx context.Context) error {
 			}
 		}
 
-		maxAttempts := 2
 		success := false
-		baseBackOff := int64(time.Second)
-
-		for attempt := 1; attempt <= maxAttempts; attempt++ {
+		for attempt := 1; attempt <= 2; attempt++ {
 			err := c.Processor.ProcessRecords(ctx, records)
 			if err == nil {
 				c.Logger.Info("successfully processed records", zap.Int("count", len(records)))
@@ -112,7 +106,7 @@ func (c *Consumer) Poll(ctx context.Context) error {
 				break
 			}
 			c.Logger.Warn("processing failed, retrying...", zap.Int("attempt", attempt), zap.Error(err))
-			jitter := time.Duration(rand.Int63n(baseBackOff) * (1 << attempt)) // 1s, 2s-4s, 4s-8s, 8s-16s
+			jitter := time.Duration(rand.Int63n(int64(time.Second)) * (1 << attempt)) // 1s, 2s-4s, 4s-8s, 8s-16s
 			time.Sleep(jitter)
 		}
 

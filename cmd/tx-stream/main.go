@@ -104,8 +104,9 @@ func main() {
 		logger.Fatal("cannot create transactions consumer", zap.Error(err))
 	}
 
-	err = txConsumer.Poll(ctx)
-	if err != nil {
-		logger.Fatal("cannot poll records from topic", zap.Error(err))
+	if appKonf.Kafka.Consume {
+		if err = txConsumer.Poll(ctx); err != nil {
+			logger.Fatal("cannot poll records from topic", zap.Error(err))
+		}
 	}
 }
