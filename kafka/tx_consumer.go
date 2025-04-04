@@ -107,6 +107,7 @@ func (c *Consumer) Poll(ctx context.Context) error {
 		for attempt := 1; attempt <= maxAttempts; attempt++ {
 			err := c.Processor.ProcessRecords(ctx, records)
 			if err == nil {
+				c.Logger.Info("successfully processed records", zap.Int("count", len(records)))
 				success = true
 				break
 			}
