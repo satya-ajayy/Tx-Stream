@@ -116,16 +116,29 @@ func (c *Consumer) Assigned(ctx context.Context, client *kgo.Client, assigned ma
 
 // Revoked commits the marked offsets and kills the consumers.
 func (c *Consumer) Revoked(ctx context.Context, client *kgo.Client, revoked map[string][]int32) {
-	c.logger.Warn("partitions revoked", zap.Any("partitions", revoked))
-	c.KillConsumers(revoked)
-	if err := client.CommitMarkedOffsets(ctx); err != nil {
-		c.logger.Error("failed to commit marked offsets", zap.Error(err))
+	partitionInfo := make([]zap.Field, 0, len(revoked))
+	for topic, partitions := range revoked {
+		partitionInfo = append(partitionInfo, zap.Int32s(topic, partitions))
 	}
+
+	if len(partitionInfo) > 0 {
+		c.logger.Warn("partitions revoked", partitionInfo...)
+	}
+
+	c.KillConsumers(revoked)
 }
 
 // Lost kills the consumers.
 func (c *Consumer) Lost(ctx context.Context, client *kgo.Client, lost map[string][]int32) {
-	c.logger.Warn("partitions lost", zap.Any("partitions", lost))
+	partitionInfo := make([]zap.Field, 0, len(lost))
+	for topic, partitions := range lost {
+		partitionInfo = append(partitionInfo, zap.Int32s(topic, partitions))
+	}
+
+	if len(partitionInfo) > 0 {
+		c.logger.Warn("partitions lost", partitionInfo...)
+	}
+
 	c.KillConsumers(lost)
 }
 
