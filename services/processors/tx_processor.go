@@ -31,7 +31,7 @@ func (p *TxProcessor) ProcessRecords(ctx context.Context, records []models.Recor
 	if len(records) == 0 {
 		return nil
 	}
-	
+
 	var txs []interface{}
 	for _, record := range records {
 		var tx models.Transaction

@@ -19,10 +19,11 @@ import (
 )
 
 const (
-	PartitionAssignedLog = "%s: new partition assigned %s %d"
-	ErrorPollingLog      = "%s: error while polling records %s %d"
-	PollingRecordsLog    = "%s: polling for records"
-	KillingConsumerLog   = "%s: killing consumer %s %d"
+	PartitionAssignedLog = "new partition assigned %s:%d"
+	PartitionRevokedLog  = "partition revoked %s:%d"
+	PartitionLostLog     = "lost partition %s:%d"
+	ErrorPollingLog      = "error while polling records %s:%d"
+	KillingConsumerLog   = "killing consumer %s:%d"
 )
 
 type TxProcessor interface {
@@ -96,7 +97,7 @@ func NewTxConsumer(conf *models.ConsumerConfig, logger *zap.Logger, processor Tx
 func (c *Consumer) Assigned(ctx context.Context, client *kgo.Client, assigned map[string][]int32) {
 	for topic, partitions := range assigned {
 		for _, partition := range partitions {
-			c.logger.Info(fmt.Sprintf(PartitionAssignedLog, c.config.Name, topic, partition))
+			c.logger.Info(fmt.Sprintf(PartitionAssignedLog, topic, partition))
 			pc := &PartitionConsumer{
 				client:    client,
 				topic:     topic,
@@ -116,27 +117,24 @@ func (c *Consumer) Assigned(ctx context.Context, client *kgo.Client, assigned ma
 
 // Revoked commits the marked offsets and kills the consumers.
 func (c *Consumer) Revoked(ctx context.Context, client *kgo.Client, revoked map[string][]int32) {
-	partitionInfo := make([]zap.Field, 0, len(revoked))
 	for topic, partitions := range revoked {
-		partitionInfo = append(partitionInfo, zap.Int32s(topic, partitions))
-	}
-
-	if len(partitionInfo) > 0 {
-		c.logger.Warn("partitions revoked", partitionInfo...)
+		for _, partition := range partitions {
+			c.logger.Warn(fmt.Sprintf(PartitionRevokedLog, topic, partition))
+		}
 	}
 
 	c.KillConsumers(revoked)
+	if err := client.CommitMarkedOffsets(ctx); err != nil {
+		c.logger.Error("failed to commit marked offsets", zap.Error(err))
+	}
 }
 
 // Lost kills the consumers.
 func (c *Consumer) Lost(ctx context.Context, client *kgo.Client, lost map[string][]int32) {
-	partitionInfo := make([]zap.Field, 0, len(lost))
 	for topic, partitions := range lost {
-		partitionInfo = append(partitionInfo, zap.Int32s(topic, partitions))
-	}
-
-	if len(partitionInfo) > 0 {
-		c.logger.Warn("partitions lost", partitionInfo...)
+		for _, partition := range partitions {
+			c.logger.Warn(fmt.Sprintf(PartitionLostLog, topic, partition))
+		}
 	}
 
 	c.KillConsumers(lost)
@@ -151,7 +149,7 @@ func (c *Consumer) KillConsumers(lost map[string][]int32) {
 		for _, partition := range partitions {
 			tp := TopicPartition{topic, partition}
 			pc := c.consumers[tp]
-			c.logger.Info(fmt.Sprintf(KillingConsumerLog, c.config.Name, topic, partition))
+			c.logger.Info(fmt.Sprintf(KillingConsumerLog, topic, partition))
 			close(c.consumers[tp].quit)
 			delete(c.consumers, tp)
 			wg.Add(1)
@@ -197,7 +195,7 @@ func (pc *PartitionConsumer) Consume(ctx context.Context) {
 
 func (pc *PartitionConsumer) ProcessRecordsWithRetry(ctx context.Context, records []models.Record) error {
 	var err error
-	for attempt := 1; attempt <= 2; attempt++ {
+	for attempt := 1; attempt <= 3; attempt++ {
 		err = pc.processor.ProcessRecords(ctx, records)
 		if err == nil {
 			pc.logger.Info("successfully processed records", zap.Int("count", len(records)))
@@ -220,7 +218,7 @@ func (c *Consumer) Poll(ctx context.Context) error {
 			return ctx.Err() // Exit gracefully
 		}
 
-		c.logger.Info(fmt.Sprintf(PollingRecordsLog, c.config.Name))
+		c.logger.Info(fmt.Sprintf("%s: polling for records", c.config.Name))
 		fetches := c.client.PollRecords(ctx, c.config.RecordsPerPoll)
 
 		// Handle client shutdown
@@ -234,7 +232,7 @@ func (c *Consumer) Poll(ctx context.Context) error {
 		}
 
 		fetches.EachError(func(topic string, partition int32, err error) {
-			c.logger.Error(fmt.Sprintf(ErrorPollingLog, c.config.Name, topic, partition), zap.Error(err))
+			c.logger.Error(fmt.Sprintf(ErrorPollingLog, topic, partition), zap.Error(err))
 		})
 
 		fetches.EachPartition(func(p kgo.FetchTopicPartition) {
