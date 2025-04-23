@@ -7,7 +7,7 @@ type FieldError struct {
 
 // ValidationErrors is a list of field errors.
 // Avoid using this type directly, use ValidationErrorBuilder instead.
-// Because, you need to add checks like `if len(ve) == 0 return nil`
+// Because you need to add checks like `if len(ve) == 0 return nil`
 // Which is error prone, so use ValidationErrorBuilder instead.
 type ValidationErrors []FieldError
 

@@ -20,7 +20,7 @@ func NewTxRepository(client *mongo.Client) *TxRepository {
 	return &TxRepository{Client: client, Collection: "transactions"}
 }
 
-// InsertTransaction inserts a single transaction into database
+// InsertTransaction inserts a single transaction into the database
 func (r *TxRepository) InsertTransaction(ctx context.Context, tx models.MongoTransaction) error {
 	collection := r.Client.Database("mybase").Collection(r.Collection)
 	_, err := collection.InsertOne(ctx, tx)
@@ -30,7 +30,7 @@ func (r *TxRepository) InsertTransaction(ctx context.Context, tx models.MongoTra
 	return nil
 }
 
-// InsertTransactions inserts a batch of transactions into database
+// InsertTransactions inserts a batch of transactions into the database
 func (r *TxRepository) InsertTransactions(ctx context.Context, txs []interface{}) error {
 	collection := r.Client.Database("mybase").Collection(r.Collection)
 	_, err := collection.InsertMany(ctx, txs)

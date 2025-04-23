@@ -97,7 +97,7 @@ func main() {
 	dlQueue := redis.NewDeadLetterQueue(redisClient, logger)
 	txProcessor := txpsr.NewTxProcessor(logger, txRepo)
 
-	metrics := kprom.NewMetrics("et")
+	metrics := kprom.NewMetrics("tx-stream")
 	conf := &models.ConsumerConfig{
 		Brokers:               appKonf.Kafka.Brokers,
 		Name:                  appKonf.Kafka.ConsumerName,

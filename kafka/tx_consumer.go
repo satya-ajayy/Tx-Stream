@@ -164,8 +164,8 @@ func (c *Consumer) Close() {
 	c.client.Close()
 }
 
-// Consume consumes the records from the partition. this will be called in a separate
-// goroutine for each assigned partition. marks the records after processing.
+// Consume consumes the records from the partition. This will be called in a separate
+// goroutine for each assigned partition. Marks the records after processing.
 func (pc *PartitionConsumer) Consume(ctx context.Context) {
 	defer close(pc.done)
 	for {
