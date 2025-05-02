@@ -4,44 +4,51 @@ import (
 	// Go Internal Packages
 	"context"
 	"encoding/json"
-	"go.uber.org/zap"
+	"fmt"
 
 	// Local Packages
 	models "tx-stream/models"
 
 	// External Packages
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 type DeadLetterQueue struct {
-	Client   *redis.Client
-	Logger   *zap.Logger
-	ListName string
+	client   *redis.Client
+	logger   *zap.Logger
+	listName string
 }
 
 func NewDeadLetterQueue(client *redis.Client, logger *zap.Logger) *DeadLetterQueue {
-	return &DeadLetterQueue{Client: client, Logger: logger, ListName: "failed-transactions"}
+	return &DeadLetterQueue{client: client, logger: logger, listName: "failed-transactions"}
 }
 
-// Send pushes all failed records into the Redis list "failed-transactions"
+// Send stores all failed records into Redis with the key as "tx:{transaction_id}"
 func (r *DeadLetterQueue) Send(ctx context.Context, records []models.Record) error {
 	if len(records) == 0 {
 		return nil
 	}
 
-	var transactions []interface{}
+	successCount := 0
 	for _, record := range records {
-		transaction, err := json.Marshal(record)
+		jsonData, err := json.Marshal(record)
 		if err != nil {
-			r.Logger.Error("failed to marshal transaction", zap.Error(err))
+			r.logger.Error("failed to marshal record", zap.Error(err))
 			continue
 		}
-		transactions = append(transactions, transaction)
+
+		key := fmt.Sprintf("tx:%s", record.Key)
+		err = r.client.Set(ctx, key, jsonData, 0).Err()
+		if err != nil {
+			r.logger.Error("failed to store record", zap.String("key", key), zap.Error(err))
+			continue
+		}
+		successCount++
 	}
 
-	err := r.Client.LPush(ctx, r.ListName, transactions...).Err()
-	if err != nil {
-		return err
+	if successCount > 0 {
+		r.logger.Info("successfully sent records", zap.Int("count", successCount))
 	}
 
 	return nil

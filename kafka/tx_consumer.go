@@ -184,7 +184,7 @@ func (pc *PartitionConsumer) Consume(ctx context.Context) {
 
 			if err := pc.ProcessRecordsWithRetry(ctx, records); err != nil {
 				pc.logger.Error("processing failed after retries, sending to DLQ", zap.Error(err))
-				if err := pc.dlq.Send(ctx, records); err != nil {
+				if err = pc.dlq.Send(ctx, records); err != nil {
 					pc.logger.Error("failed to send records to DLQ", zap.Error(err))
 				}
 			}

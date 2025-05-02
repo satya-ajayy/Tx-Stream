@@ -9,7 +9,7 @@ var DefaultConfig = []byte(`
 application: "tx-consumer"
 
 logger:
-  level: "info"
+  level: "debug"
 
 is_prod_mode: false
 
