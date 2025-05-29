@@ -11,6 +11,7 @@ import (
 
 	// Local Packages
 	models "tx-stream/models"
+	utils "tx-stream/utils"
 
 	// External Packages
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -19,11 +20,11 @@ import (
 )
 
 const (
-	PartitionAssignedLog = "new partition assigned %s:%d"
-	PartitionRevokedLog  = "partition revoked %s:%d"
-	PartitionLostLog     = "lost partition %s:%d"
-	ErrorPollingLog      = "error while polling records %s:%d"
-	KillingConsumerLog   = "killing consumer %s:%d"
+	PartitionAssignedLog = "%s: New Partitions Assigned [%s]"
+	PartitionRevokedLog  = "%s: Partitions Revoked [%s]"
+	PartitionLostLog     = "%s: Partitions Lost [%s]"
+	ErrorPollingLog      = "%s: Error while polling records [%d]"
+	KillingConsumerLog   = "%s: Killing Consumers [%s]"
 )
 
 type TxProcessor interface {
@@ -96,8 +97,8 @@ func NewTxConsumer(conf *models.ConsumerConfig, logger *zap.Logger, processor Tx
 // Assigned creates a new consumer for each assigned partition and starts a goroutine to consume the records.
 func (c *Consumer) Assigned(ctx context.Context, client *kgo.Client, assigned map[string][]int32) {
 	for topic, partitions := range assigned {
+		c.logger.Info(fmt.Sprintf(PartitionAssignedLog, topic, utils.JoinInt32Slice(partitions)))
 		for _, partition := range partitions {
-			c.logger.Info(fmt.Sprintf(PartitionAssignedLog, topic, partition))
 			pc := &PartitionConsumer{
 				client:    client,
 				topic:     topic,
@@ -118,9 +119,7 @@ func (c *Consumer) Assigned(ctx context.Context, client *kgo.Client, assigned ma
 // Revoked commits the marked offsets and kills the consumers.
 func (c *Consumer) Revoked(ctx context.Context, client *kgo.Client, revoked map[string][]int32) {
 	for topic, partitions := range revoked {
-		for _, partition := range partitions {
-			c.logger.Warn(fmt.Sprintf(PartitionRevokedLog, topic, partition))
-		}
+		c.logger.Warn(fmt.Sprintf(PartitionRevokedLog, topic, utils.JoinInt32Slice(partitions)))
 	}
 
 	c.KillConsumers(revoked)
@@ -132,9 +131,7 @@ func (c *Consumer) Revoked(ctx context.Context, client *kgo.Client, revoked map[
 // Lost kills the consumers.
 func (c *Consumer) Lost(ctx context.Context, client *kgo.Client, lost map[string][]int32) {
 	for topic, partitions := range lost {
-		for _, partition := range partitions {
-			c.logger.Warn(fmt.Sprintf(PartitionLostLog, topic, partition))
-		}
+		c.logger.Warn(fmt.Sprintf(PartitionLostLog, topic, utils.JoinInt32Slice(partitions)))
 	}
 
 	c.KillConsumers(lost)
@@ -146,10 +143,10 @@ func (c *Consumer) KillConsumers(lost map[string][]int32) {
 	defer wg.Wait()
 
 	for topic, partitions := range lost {
+		c.logger.Info(fmt.Sprintf(KillingConsumerLog, topic, utils.JoinInt32Slice(partitions)))
 		for _, partition := range partitions {
 			tp := TopicPartition{topic, partition}
 			pc := c.consumers[tp]
-			c.logger.Info(fmt.Sprintf(KillingConsumerLog, topic, partition))
 			close(c.consumers[tp].quit)
 			delete(c.consumers, tp)
 			wg.Add(1)
@@ -218,7 +215,7 @@ func (c *Consumer) Poll(ctx context.Context) error {
 			return ctx.Err() // Exit gracefully
 		}
 
-		c.logger.Info(fmt.Sprintf("%s: polling for records", c.config.Name))
+		c.logger.Info(fmt.Sprintf("%s: Polling For Records", c.config.Name))
 		fetches := c.client.PollRecords(ctx, c.config.RecordsPerPoll)
 
 		// Handle client shutdown
