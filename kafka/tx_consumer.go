@@ -191,6 +191,9 @@ func (pc *PartitionConsumer) Consume(ctx context.Context) {
 }
 
 func (pc *PartitionConsumer) ProcessRecordsWithRetry(ctx context.Context, records []models.Record) error {
+	if len(records) == 0 {
+		return nil
+	}
 	var err error
 	for attempt := 1; attempt <= 3; attempt++ {
 		err = pc.processor.ProcessRecords(ctx, records)

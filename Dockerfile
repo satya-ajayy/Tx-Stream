@@ -12,5 +12,6 @@ RUN go build -o /usr/local/bin/tx-stream ./cmd/tx-stream
 # runner image
 FROM gcr.io/distroless/static:latest
 WORKDIR /app
+
 COPY --from=base /usr/local/bin/tx-stream tx-stream
 ENTRYPOINT ["/app/tx-stream"]
