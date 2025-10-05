@@ -42,3 +42,7 @@ desktop.ini
 # Docker-related
 docker-compose.override.yml
 .env
+
+# Config Yaml Files
+config/*.yaml
+config/*.yml

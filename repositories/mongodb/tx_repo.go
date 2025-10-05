@@ -13,16 +13,21 @@ import (
 
 type TxRepository struct {
 	client     *mongo.Client
+	database   string
 	collection string
 }
 
 func NewTxRepository(client *mongo.Client) *TxRepository {
-	return &TxRepository{client: client, collection: "transactions"}
+	return &TxRepository{
+		client:     client,
+		database:   "flipkart-db",
+		collection: "transactions",
+	}
 }
 
 // InsertTransaction inserts a single transaction into the database
 func (r *TxRepository) InsertTransaction(ctx context.Context, tx models.MongoTransaction) error {
-	collection := r.client.Database("mybase").Collection(r.collection)
+	collection := r.client.Database(r.database).Collection(r.collection)
 	_, err := collection.InsertOne(ctx, tx)
 	if err != nil {
 		return err
@@ -32,7 +37,7 @@ func (r *TxRepository) InsertTransaction(ctx context.Context, tx models.MongoTra
 
 // InsertTransactions inserts a batch of transactions into the database
 func (r *TxRepository) InsertTransactions(ctx context.Context, txs []interface{}) error {
-	collection := r.client.Database("mybase").Collection(r.collection)
+	collection := r.client.Database(r.database).Collection(r.collection)
 	_, err := collection.InsertMany(ctx, txs)
 	if err != nil {
 		return err

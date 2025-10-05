@@ -15,13 +15,12 @@ import (
 )
 
 type DeadLetterQueue struct {
-	client   *redis.Client
-	logger   *zap.Logger
-	listName string
+	client *redis.Client
+	logger *zap.Logger
 }
 
 func NewDeadLetterQueue(client *redis.Client, logger *zap.Logger) *DeadLetterQueue {
-	return &DeadLetterQueue{client: client, logger: logger, listName: "failed-transactions"}
+	return &DeadLetterQueue{client: client, logger: logger}
 }
 
 // Send stores all failed records into Redis with the key as "tx:{transaction_id}"
@@ -38,7 +37,7 @@ func (r *DeadLetterQueue) Send(ctx context.Context, records []models.Record) err
 			continue
 		}
 
-		key := fmt.Sprintf("tx:%s", record.Key)
+		key := fmt.Sprintf("failed-tx:%s", record.Key)
 		err = r.client.Set(ctx, key, jsonData, 0).Err()
 		if err != nil {
 			r.logger.Error("failed to store record", zap.String("key", key), zap.Error(err))

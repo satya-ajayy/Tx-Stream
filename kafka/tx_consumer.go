@@ -211,6 +211,7 @@ func (pc *PartitionConsumer) ProcessRecordsWithRetry(ctx context.Context, record
 func (c *Consumer) Poll(ctx context.Context) error {
 	defer c.Close()
 
+	c.logger.Info(fmt.Sprintf("%s: Polling For Records", c.config.Name))
 	for {
 		// Check if the context is canceled before polling
 		if ctx.Err() != nil {
@@ -218,7 +219,7 @@ func (c *Consumer) Poll(ctx context.Context) error {
 			return ctx.Err() // Exit gracefully
 		}
 
-		c.logger.Info(fmt.Sprintf("%s: Polling For Records", c.config.Name))
+		// Fetches a batch of records from Kafka based on the poll size
 		fetches := c.client.PollRecords(ctx, c.config.RecordsPerPoll)
 
 		// Handle client shutdown
